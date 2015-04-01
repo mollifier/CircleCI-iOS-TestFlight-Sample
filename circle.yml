@@ -4,6 +4,7 @@ machine:
     XCODE_WORKSPACE: CircleCI-Sample.xcworkspace
     APPNAME: CircleCI-Sample
     DEPLOYGATE_USER_NAME: fc-miyake
+    DEVELOPER_NAME: "iPhone Distribution: FaithCreates Inc."
 dependencies:
   override:
     - pod install:
