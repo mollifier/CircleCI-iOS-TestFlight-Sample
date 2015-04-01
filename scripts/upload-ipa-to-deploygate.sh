@@ -33,6 +33,7 @@ main()
 
     local option
     local OPTARG
+    local OPTIND
     while getopts ':u:t:m:h' option; do
         case $option in
         u)
