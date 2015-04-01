@@ -5,6 +5,7 @@ machine:
     APPNAME: CircleCI-Sample
     DEPLOYGATE_USER_NAME: fc-miyake
     DEVELOPER_NAME: "iPhone Distribution: FaithCreates Inc."
+    PROFILE_UUID: "6d7927d4-5e5d-4d32-b4bc-742251de4e51"
 dependencies:
   override:
     - pod install:
