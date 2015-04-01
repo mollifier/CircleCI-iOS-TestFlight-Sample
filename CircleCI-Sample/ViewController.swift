@@ -13,6 +13,10 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
+        
+        let label1 = UILabel(frame: CGRectMake(20, 20, 200, 44))
+        label1.text = "label1"
+        self.view.addSubview(label1)
     }
 
     override func didReceiveMemoryWarning() {
