@@ -10,6 +10,6 @@ output_path="$PWD/build"
     -o "$output_path"
 
 ./scripts/upload-ipa-to-deploygate.sh \
-    -u "$DEPLOYGATE_USER_NAME" -t "$DEPLOYGATE_API_TOKEN" -m "$message"
+    -u "$DEPLOYGATE_USER_NAME" -t "$DEPLOYGATE_API_TOKEN" -m "$message" \
     "${output_path}/${APPNAME}.ipa"
 
