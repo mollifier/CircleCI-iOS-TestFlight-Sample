@@ -10,11 +10,12 @@ declare -r SCRIPT_NAME=${0##*/}
 print_usage()
 {
     cat << EOF
-Usage: $SCRIPT_NAME [-o OUTPUT_PATH] -d DEVELOPER_NAME -a APPNAME -p PROVISIONING_FILE -s XCODE_SCHEME -w XCODE_WORKSPACE
+Usage: $SCRIPT_NAME [-o OUTPUT_PATH] [-c CONFIGURATION] -d DEVELOPER_NAME -a APPNAME -p PROVISIONING_FILE -s XCODE_SCHEME -w XCODE_WORKSPACE
 
 Build iOS project and create ipa file.
 
   -o OUTPUT_PATH        Output path (default: \$PWD/build)
+  -c CONFIGURATION      Build configuration (default: Release)
   -d DEVELOPER_NAME     Identity in Keychanin
   -a APPNAME            iOS application name
   -p PROVISIONING_FILE  mobileprovision file name
@@ -41,14 +42,18 @@ main()
     local provisioning_file=''
     local xcode_scheme=''
     local xcode_workspace=''
+    local configuration='Release'
 
     local option
     local OPTARG
     local OPTIND
-    while getopts ':o:d:a:p:s:w:h' option; do
+    while getopts ':o:c:d:a:p:s:w:h' option; do
         case $option in
         o)
             output_path=$OPTARG
+            ;;
+        c)
+            configuration=$OPTARG
             ;;
         d)
             developer_name=$OPTARG
@@ -86,6 +91,11 @@ main()
         return 1
     fi
 
+    if [ -z "$configuration" ]; then
+        print_error 'you must specify configuration'
+        return 1
+    fi
+
     if [ -z "$developer_name" ]; then
         print_error 'you must specify developer_name'
         return 1
@@ -113,12 +123,11 @@ main()
 
     local provisioning_profile_path="$HOME/Library/MobileDevice/Provisioning Profiles/$provisioning_file"
 
-    # TODO Configurationを指定できるようにする
     # Archive
     xcodebuild \
       -scheme "$xcode_scheme" \
       -workspace "$xcode_workspace" \
-      -configuration Release \
+      -configuration "$configuration" \
       clean build \
       CODE_SIGN_IDENTITY="$developer_name" \
       CONFIGURATION_BUILD_DIR="$output_path" \
