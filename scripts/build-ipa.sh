@@ -187,6 +187,11 @@ main()
         CONFIGURATION_BUILD_DIR="$output_path"
     fi
 
+    if [ "$?" -ne 0 ]; then
+        print_error 'fail to archive'
+        return 1
+    fi
+
     # Signing
     xcrun -log -sdk iphoneos PackageApplication \
       "${output_path}/${appname}.app" \
