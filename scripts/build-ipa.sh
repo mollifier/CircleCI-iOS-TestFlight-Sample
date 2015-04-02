@@ -6,13 +6,17 @@
 
 declare -r SCRIPT_NAME=${0##*/}
 
-# TODO : XCODE_PROJECTにも対応する
 print_usage()
 {
     cat << EOF
-Usage: $SCRIPT_NAME [-o OUTPUT_PATH] [-c CONFIGURATION] [-m PROVISIONING_FILE_DIR] -d DEVELOPER_NAME -a APPNAME -p PROVISIONING_FILE -s XCODE_SCHEME -w XCODE_WORKSPACE
+Usage:
+1st form:
+  $SCRIPT_NAME [-o OUTPUT_PATH] [-c CONFIGURATION] [-m PROVISIONING_FILE_DIR] -d DEVELOPER_NAME -a APPNAME -p PROVISIONING_FILE -s XCODE_SCHEME -w XCODE_WORKSPACE
 
-Build iOS project and create ipa file.
+2nd form:
+  $SCRIPT_NAME [-o OUTPUT_PATH] [-c CONFIGURATION] [-m PROVISIONING_FILE_DIR] -d DEVELOPER_NAME -a APPNAME -p PROVISIONING_FILE -t XCODE_TARGET
+
+Build iOS project and create ipa file. Use 1st form to build iOS project with CocoaPods. Use 2nd form to build iOS project without CocoaPods.
 
   -o OUTPUT_PATH        Output path (default: \$PWD/build)
   -c CONFIGURATION      Build configuration (default: Release)
@@ -22,10 +26,13 @@ Build iOS project and create ipa file.
   -m PROVISIONING_FILE_DIR mobileprovision file directory (default: \$HOME/Library/MobileDevice/Provisioning Profiles)
   -s XCODE_SCHEME       Xcode scheme(build target name)
   -w XCODE_WORKSPACE    Xcode workspace name
+  -t XCODE_TARGET       Xcode target
   -h                    display this help and exit
 
 Examples
-  $SCRIPT_NAME -o \$PWD/build -d "iPhone Distribution: FaithCreates Inc." -a CircleCI-Sample -p 6d7927d4-5e5d-4d32-b4bc-742251de4e51.mobileprovision -s CircleCI-Sample -w CircleCI-Sample.xcworkspace
+  $SCRIPT_NAME -o \$PWD/build -d "iPhone Distribution: FaithCreates Inc." -a CircleCI-Sample -p 6d7927d4-5e5d-4d32-b4bc-111111111111.mobileprovision -s CircleCI-Sample -w CircleCI-Sample.xcworkspace
+
+  $SCRIPT_NAME -o \$PWD/build -d "iPhone Distribution: FaithCreates Inc." -a CircleCI-Sample -p 6d7927d4-5e5d-4d32-b4bc-111111111111.mobileprovision -t CircleCI-Sample
 EOF
 }
 
@@ -44,12 +51,13 @@ main()
     local provisioning_file_dir="$HOME/Library/MobileDevice/Provisioning Profiles"
     local xcode_scheme=''
     local xcode_workspace=''
+    local xcode_target=''
     local configuration='Release'
 
     local option
     local OPTARG
     local OPTIND
-    while getopts ':o:c:d:a:p:m:s:w:h' option; do
+    while getopts ':o:c:d:a:p:m:s:w:t:h' option; do
         case $option in
         o)
             output_path=$OPTARG
@@ -74,6 +82,9 @@ main()
             ;;
         w)
             xcode_workspace=$OPTARG
+            ;;
+        t)
+            xcode_target=$OPTARG
             ;;
         h)
             print_usage
@@ -121,14 +132,31 @@ main()
         return 1
     fi
 
-    if [ -z "$xcode_scheme" ]; then
-        print_error 'you must specify xcode_scheme'
-        return 1
-    fi
+    # 1st formの場合、xcode_schemeは空でない、xcode_workspaceは空でない、xcode_targetは空
+    # 2nd formの場合、xcode_schemeは空、xcode_workspaceは空、xcode_targetは空でない
+    if [ -n "$xcode_target" ]; then
+      # 2nd formの場合
+      # if [ -n "$xcode_target" ]; then
+      if [ -n "$xcode_scheme" ]; then
+          print_error "you don't need to specify both xcode_target and xcode_scheme"
+          return 1
+      fi
 
-    if [ -z "$xcode_workspace" ]; then
-        print_error 'you must specify xcode_workspace'
-        return 1
+      if [ -n "$xcode_workspace" ]; then
+          print_error "you don't need to specify both xcode_target xcode_workspace"
+          return 1
+      fi
+    else
+      # 1st formの場合
+      if [ -z "$xcode_scheme" ]; then
+          print_error 'you must specify xcode_scheme or xcode_target'
+          return 1
+      fi
+
+      if [ -z "$xcode_workspace" ]; then
+          print_error 'you must specify xcode_workspace or xcode_target'
+          return 1
+      fi
     fi
 
     # 末尾の/を取り除きます
@@ -140,13 +168,24 @@ main()
     local provisioning_profile_path="${provisioning_file_dir}/$provisioning_file"
 
     # Archive
-    xcodebuild \
-      -scheme "$xcode_scheme" \
-      -workspace "$xcode_workspace" \
-      -configuration "$configuration" \
-      clean build \
-      CODE_SIGN_IDENTITY="$developer_name" \
-      CONFIGURATION_BUILD_DIR="$output_path" \
+    if [ -n "$xcode_target" ]; then
+      # workspace指定なしの場合
+      xcodebuild \
+        -target "$xcode_target" \
+        -configuration "$configuration" \
+        clean build \
+        CODE_SIGN_IDENTITY="$developer_name" \
+        CONFIGURATION_BUILD_DIR="$output_path"
+    else
+      # workspace指定ありの場合
+      xcodebuild \
+        -scheme "$xcode_scheme" \
+        -workspace "$xcode_workspace" \
+        -configuration "$configuration" \
+        clean build \
+        CODE_SIGN_IDENTITY="$developer_name" \
+        CONFIGURATION_BUILD_DIR="$output_path"
+    fi
 
     # Signing
     xcrun -log -sdk iphoneos PackageApplication \
